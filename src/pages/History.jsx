@@ -1,9 +1,9 @@
 import React from 'react'
 
-function EditQuotation() {
+function History() {
   return (
     <div>EditQuotation</div>
   )
 }
 
-export default EditQuotation
+export default History;

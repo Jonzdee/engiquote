@@ -1,9 +1,9 @@
 import React from 'react'
 
-function ViewQuotation() {
+function Template() {
   return (
     <div>ViewQuotation</div>
   )
 }
 
-export default ViewQuotation
+export default Template;

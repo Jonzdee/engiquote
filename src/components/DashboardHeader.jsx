@@ -6,7 +6,6 @@ export default function DashboardHeader() {
   return (
     <header className="w-full sticky top-0 z-40 bg-white shadow-sm border-b">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-3">
-        {/* LEFT — Logo + Title */}
         <div className="flex items-center gap-3">
        
 

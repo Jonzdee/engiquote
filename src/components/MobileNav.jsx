@@ -5,7 +5,7 @@ import {
   FilePlus,
   History,
   Users,
-  Settings,
+  GlobeLock,
 } from "lucide-react";
 
 export default function MobileNav() {
@@ -17,8 +17,8 @@ export default function MobileNav() {
     },
     { to: "/createquotation", label: "Create", icon: <FilePlus size={22} /> },
     { to: "/quotationhistory", label: "History", icon: <History size={22} /> },
-    { to: "/clients", label: "Clients", icon: <Users size={22} /> },
-    { to: "/settings", label: "Settings", icon: <Settings size={22} /> },
+    { to: "/browsetemplate", label: "Template", icon: <GlobeLock size={22} /> },
+    { to: "/profile", label: "profile", icon: <Users size={22} /> },
   ];
 
   return (
