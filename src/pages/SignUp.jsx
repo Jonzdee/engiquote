@@ -115,7 +115,7 @@ function Signup() {
         </div>
 
         {step === 1 && (
-          <div className="space-y-4">
+          <div className="space-y-2">
             <div>
               <label className="font-medium">Full Name</label>
               <input
@@ -167,7 +167,7 @@ function Signup() {
         )}
 
         {step === 2 && (
-          <div className="space-y-4">
+          <div className="space-y-2">
             <div>
               <label className="font-medium">Business Name</label>
               <input
@@ -235,7 +235,7 @@ function Signup() {
         )}
 
         {step === 3 && (
-          <div className="space-y-4">
+          <div className="space-y-2">
             <div>
               <label className="font-medium">Business Logo</label>
               <input
@@ -322,7 +322,7 @@ function Signup() {
         <button
           type="button"
           onClick={() => navigate("/login")}
-          className="w-full text-center mt-3 text-black font-medium hover:underline"
+          className="w-full text-center  text-black font-medium hover:underline"
         >
           Back to Login
         </button>
