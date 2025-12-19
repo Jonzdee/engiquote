@@ -21,7 +21,7 @@ export default function Welcome() {
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-black">
       <h1
-        className="text-3xl font-extrabold tracking-tight text-white relative mb-4"
+        className="text-2xl font-extrabold tracking-tight text-white relative mb-4"
         style={{
           fontFamily: "Montserrat",
           textShadow: "0 0 20px rgba(255,255,255,0.6)",
