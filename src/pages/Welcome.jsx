@@ -21,16 +21,20 @@ export default function Welcome() {
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-black">
       <h1
-        className="text-2xl font-extrabold tracking-tight text-white relative mb-4"
+        className="text-3xl font-extrabold tracking-tight text-white relative mb-4"
         style={{
           fontFamily: "Montserrat",
           textShadow: "0 0 20px rgba(255,255,255,0.6)",
-        }}> 
+        }}
+      >
         EngiQuote
         <span className="absolute left-0 -bottom-3 w-full h-1 overflow-hidden">
           <span className="block h-1 w-1/2 bg-white animate-slide"></span>
         </span>
       </h1>
+      <p className="text-sm text-gray-400 animate-pulse">
+        Smart Engineering Quotations
+      </p>
       <style>
         {`
           @keyframes slide {
