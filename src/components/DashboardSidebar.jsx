@@ -28,12 +28,12 @@ function DashboardSidebar() {
           <FilePlus size={18} /> Create Quotation
         </NavLink>
 
-        <NavLink to="/quotationhistory" className="flex items-center gap-3">
-          <History size={18} /> Quotation History
-        </NavLink>
-
         <NavLink to="/browsetemplate" className="flex items-center gap-3">
           <GlobeLock size={18} /> Browse Template
+        </NavLink>
+        
+        <NavLink to="/quotationhistory" className="flex items-center gap-3">
+          <History size={18} /> Quotation History
         </NavLink>
 
         <NavLink to="/profile" className="flex items-center gap-3">

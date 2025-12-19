@@ -21,7 +21,7 @@ export default function Dashboard({
         />
       )}
       {/* MAIN CONTENT */}
-      <div className="flex-1 flex flex-col md:ml-64">
+      <div className="flex-1 flex flex-col">
         <main className="p-6 overflow-auto pb-32">
           <QuickActions />
           <StatsCards
