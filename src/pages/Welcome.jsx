@@ -47,7 +47,7 @@ export default function Welcome() {
     const role = localStorage.getItem("role");
     if (role === "user" || role === "guest") {
       // short delay to avoid flash
-      const t = setTimeout(() => navigate("/dashboard"), 200);
+      const t = setTimeout(() => navigate("/dashboard"), 1500);
       return () => clearTimeout(t);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -65,7 +65,7 @@ export default function Welcome() {
 
     timerRef.current = setTimeout(() => {
       setSecondsLeft((s) => s - 1);
-    }, 3000);
+    }, 2000);
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
