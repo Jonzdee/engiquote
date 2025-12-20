@@ -217,11 +217,7 @@ export default function Welcome() {
         )}
 
         <div className="mb-4">
-          <div
-            role="status"
-            aria-live="polite"
-            className="text-sm text-gray-300"
-          >
+          <div role="status" aria-live="polite" className="text-sm text-gray-300">
             {!skipRedirect ? (
               <>
                 Redirecting to <strong className="text-white">Login</strong> in{" "}
@@ -240,7 +236,7 @@ export default function Welcome() {
           <button
             ref={skipBtnRef}
             onClick={handleSkip}
-            className="px-2 py-2 rounded bg-white text-black font-medium hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className="px-4 py-2 rounded bg-white text-black font-medium hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400"
           >
             Skip to Login
           </button>
@@ -265,9 +261,7 @@ export default function Welcome() {
           </label>
         </div>
 
-        <div className="mt-8 text-xs text-gray-500">
-          EngiQuote v1.0 • Built for fast quotations
-        </div>
+        <div className="mt-8 text-xs text-gray-500">EngiQuote v1.0 • Built for fast quotations</div>
       </div>
 
       {/* Onboarding modal (first time only) */}
@@ -295,8 +289,7 @@ export default function Welcome() {
                     Welcome to EngiQuote
                   </h2>
                   <p className="text-sm text-slate-500 mt-1">
-                    Quick tour: create a quote, pick a template, and save to
-                    history.
+                    Quick tour: create a quote, pick a template, and save to history.
                   </p>
                 </div>
               </div>
@@ -307,8 +300,7 @@ export default function Welcome() {
                     Create a quotation with items, quantities and unit prices.
                   </li>
                   <li>
-                    Browse templates to match your brand and choose
-                    layout/colors.
+                    Browse templates to match your brand and choose layout/colors.
                   </li>
                   <li>
                     Export PDF, save to history, or print A4-ready quotes.
@@ -317,9 +309,7 @@ export default function Welcome() {
               </div>
 
               <div className="mt-6 flex items-center justify-between">
-                <div className="text-xs text-slate-500">
-                  You can always re-open this tour from the Help menu.
-                </div>
+                <div className="text-xs text-slate-500">You can always re-open this tour from the Help menu.</div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => {
