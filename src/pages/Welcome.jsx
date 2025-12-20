@@ -236,14 +236,14 @@ export default function Welcome() {
           <button
             ref={skipBtnRef}
             onClick={handleSkip}
-            className="px-4 py-2 rounded bg-white text-black font-medium hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className="px-2 py-2 rounded bg-white text-black font-medium hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400"
           >
             Skip to Login
           </button>
 
           <button
             onClick={handleGuest}
-            className="px-4 py-2 rounded border border-white/20 text-white hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className="px-2 py-2 rounded border border-white/20 text-white hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-indigo-400"
           >
             Continue as Guest
           </button>
