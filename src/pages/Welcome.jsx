@@ -65,7 +65,7 @@ export default function Welcome() {
 
     timerRef.current = setTimeout(() => {
       setSecondsLeft((s) => s - 1);
-    }, 1000);
+    }, 3000);
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
