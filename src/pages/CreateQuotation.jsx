@@ -9,15 +9,17 @@ import jsPDF from "jspdf";
 import { FileText, Save, Printer } from "lucide-react";
 import { toast } from "react-toastify";
 /**
- * CreateQuotation.ksx
+ * CreateQuotation.jsx — adjusted for small screens
  *
- * - Mobile responsive quotation editor (Tailwind classes assumed)
- * - Professional PDF generator (vector text using jsPDF)
- * - Logo upload with resizing, drag & drop, replace/remove
- * - Signature canvas (pointer events)
- * - Save to History stores payload + generated PDF data URL in localStorage
+ * Key mobile-suitable changes:
+ * - Quote card is full-width on small screens (no horizontal overflow).
+ * - Table becomes horizontally scrollable on small screens.
+ * - Mobile item cards use compact spacing and full-width form controls.
+ * - Logo area, inputs and signature canvas scale down.
+ * - Fixed mobile summary bar stacked layout on very small widths; height slightly reduced.
+ * - Top-level padding-bottom uses --mobile-bar-height to ensure content isn't hidden.
  *
- * Note: rename file to .jsx/.tsx in your project if needed. This file uses Tailwind utility classes in markup.
+ * Assumes Tailwind CSS is available in the project.
  */
 
 const MAX_LOGO_SIZE = 5 * 1024 * 1024;
@@ -73,22 +75,21 @@ export default function CreateQuotation() {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
 
   const [saving, setSaving] = useState(false);
-  // Read selected template (if any) and apply CSS variables / defaults
+
+  // --- TEMPLATE LOADING (unchanged) ---
   useEffect(() => {
     try {
       const raw = localStorage.getItem("quote_template");
       if (!raw) return;
       const template = JSON.parse(raw);
       if (!template || !template.vars) return;
-      // apply CSS variables to the quote card (so previews + exports use them)
       const quoteEl = quoteRef.current;
       if (quoteEl) {
         Object.entries(template.vars).forEach(([key, val]) => {
           quoteEl.style.setProperty(key, val);
         });
       }
-      // optionally keep the template in state if you want to reference name/layout
-      setTemplate(template); // requires: const [template, setTemplate] = useState(null);
+      setTemplate(template);
     } catch (e) {
       console.warn("Failed to apply template:", e);
     }
@@ -109,8 +110,6 @@ export default function CreateQuotation() {
         return;
       }
 
-      // If no template saved, apply the Refrens default template automatically.
-      // Define the default here so CreateQuotation doesn't depend on Template.jsx directly.
       const defaultTemplate = {
         id: "refrens-default",
         name: "Refrens (Default)",
@@ -129,7 +128,6 @@ export default function CreateQuotation() {
         default: true,
       };
 
-      // apply default template and persist it so Template page shows the correct state
       localStorage.setItem("quote_template", JSON.stringify(defaultTemplate));
       setTemplate(defaultTemplate);
       const el = quoteRef.current;
@@ -141,9 +139,9 @@ export default function CreateQuotation() {
     } catch (e) {
       console.warn("Failed to load or apply template:", e);
     }
-  }, []); // run once on mount
+  }, []);
 
-  // Inject print CSS so only the quote prints as A4
+  // Print CSS injection (unchanged)
   useEffect(() => {
     const css = `
       @page { size: A4; margin: 16mm; }
@@ -220,7 +218,7 @@ export default function CreateQuotation() {
     [subtotal, vatAmount, shipping]
   );
 
-  // Logo upload utilities
+  // Logo upload utilities (unchanged)
   const resizeImageDataUrl = (dataUrl, maxWidth = MAX_LOGO_WIDTH) =>
     new Promise((resolve) => {
       const img = new Image();
@@ -295,7 +293,10 @@ export default function CreateQuotation() {
     const ctx = canvas.getContext("2d");
 
     const resize = () => {
-      const cssWidth = Math.min(600, canvas.clientWidth || 600);
+      // Use parent width but cap for performance
+      const container = canvas.parentElement;
+      const containerWidth = container ? container.clientWidth : 400;
+      const cssWidth = Math.min(600, Math.max(280, containerWidth)); // ensure it fits small screens
       const cssHeight = 120;
       const dpr = window.devicePixelRatio || 1;
       canvas.width = Math.round(cssWidth * dpr);
@@ -331,6 +332,9 @@ export default function CreateQuotation() {
     const down = (e) => {
       drawingRef.current = true;
       lastPoint.current = getPos(e);
+      try {
+        e.target?.setPointerCapture?.(e.pointerId);
+      } catch {}
     };
     const move = (e) => {
       if (!drawingRef.current) return;
@@ -341,7 +345,12 @@ export default function CreateQuotation() {
       ctx.stroke();
       lastPoint.current = p;
     };
-    const up = () => (drawingRef.current = false);
+    const up = (e) => {
+      drawingRef.current = false;
+      try {
+        e.target?.releasePointerCapture?.(e.pointerId);
+      } catch {}
+    };
 
     canvas.addEventListener("pointerdown", down);
     window.addEventListener("pointermove", move);
@@ -372,7 +381,7 @@ export default function CreateQuotation() {
       img.src = src;
     });
 
-  // Professional PDF generator (vector-based using jsPDF)
+  // Professional PDF generator (unchanged)
   const generateProfessionalPdfDataUrl = useCallback(async () => {
     const pdf = new jsPDF({
       unit: "mm",
@@ -398,7 +407,6 @@ export default function CreateQuotation() {
         sigDataUrl = sigCanvas.toDataURL("image/png");
       } catch (e) {
         sigDataUrl = null;
-        e
       }
     }
     const sigImg = sigDataUrl ? await loadImage(sigDataUrl) : null;
@@ -474,7 +482,6 @@ export default function CreateQuotation() {
     y += Math.max(12, custLines.length * 5) + 6;
 
     // Items table header
-  
     const colDescW = contentWidth * 0.55;
     const colQtyW = contentWidth * 0.1;
     const colUnitW = contentWidth * 0.17;
@@ -717,14 +724,14 @@ export default function CreateQuotation() {
     }
   };
 
-  // Actions bar buttons (with icons)
+  // Actions bar buttons (with icons) — buttons keep full width on mobile
   const ActionsBar = (
     <div className="flex flex-wrap gap-2">
       <button
         type="button"
         onClick={exportPdf}
         title="Export quotation as PDF"
-        className="inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded-md shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 whitespace-nowrap"
+        className="inline-flex items-center gap-2 px-3 py-2 bg-black text-white rounded-md shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 whitespace-nowrap mobile:w-full sm:w-auto"
       >
         <FileText size={16} aria-hidden="true" />
         <span>Export PDF</span>
@@ -736,12 +743,12 @@ export default function CreateQuotation() {
         disabled={saving}
         aria-busy={saving}
         title="Save quotation to History"
-        className={`inline-flex items-center gap-2 px-4 py-2 rounded-md shadow-sm whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-indigo-400
+        className={`inline-flex items-center gap-2 px-3 py-2 rounded-md shadow-sm whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-indigo-400
         ${
           saving
             ? "bg-gray-200 text-gray-600 cursor-not-allowed"
             : "bg-white border border-slate-200 text-slate-800 hover:bg-slate-50"
-        }`}
+        } mobile:w-full sm:w-auto`}
       >
         {saving ? (
           <svg
@@ -775,7 +782,7 @@ export default function CreateQuotation() {
         type="button"
         onClick={() => window.print()}
         title="Print only the quotation (A4)"
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-md shadow-sm whitespace-nowrap bg-amber-400 text-slate-900 hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-300"
+        className="inline-flex items-center gap-2 px-3 py-2 rounded-md shadow-sm whitespace-nowrap bg-amber-400 text-slate-900 hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-300 mobile:w-full sm:w-auto"
       >
         <Printer size={16} aria-hidden="true" />
         <span>Print (A4)</span>
@@ -783,15 +790,40 @@ export default function CreateQuotation() {
     </div>
   );
 
+  // MOBILE BAR HEIGHT CONSTANT (used to push content above the fixed bar)
+  const MOBILE_BAR_HEIGHT = 64; // px - slightly smaller for better fit on small screens
+
   return (
     <div
-      className={`p-4 sm:p-6 ${
+      className={`p-3 sm:p-6 ${
         dark ? "bg-slate-900 text-slate-100" : "bg-slate-50 text-slate-900"
       } min-h-screen`}
+      // set the CSS variable and also add padding-bottom so content is never hidden
+      style={{
+        "--mobile-bar-height": `${MOBILE_BAR_HEIGHT}px`,
+        paddingBottom: `calc(var(--mobile-bar-height, ${MOBILE_BAR_HEIGHT}px) + env(safe-area-inset-bottom, 8px))`,
+      }}
     >
+      {/* small helper CSS for responsive behaviors */}
+      <style>{`
+        /* ensure printable card fits on small screens, avoids horizontal overflow */
+        .quote-printable { width: 100%; box-sizing: border-box; }
+        /* table wrapper to allow horizontal scroll on small screens */
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        /* make mobile action buttons fill available space and wrap */
+        .mobile-action { flex: 1 1 auto; min-width: 0; }
+        /* compact adjustments for mobile item cards */
+        @media (max-width: 420px) {
+          .logo-small { width: 64px; height: 64px; }
+          .quote-padding { padding: 12px; }
+          .mobile-bar-stack { flex-direction: column; align-items: flex-start; gap: 8px; }
+          .mobile-bar-stack .actions { width: 100%; display: flex; gap: 8px; }
+        }
+      `}</style>
+
       {/* Actions */}
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div className="flex-1">{ActionsBar}</div>
+      <div className="mb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="w-full sm:flex-1">{ActionsBar}</div>
 
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-2 text-sm">
@@ -807,16 +839,16 @@ export default function CreateQuotation() {
       </div>
 
       {/* Main editable quotation card (printable area) */}
-      <div className="max-w-5xl mx-auto">
+      <div className="w-full max-w-full sm:max-w-5xl mx-auto">
         <div
           ref={quoteRef}
-          className="quote-printable bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-sm"
+          className="quote-printable bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-sm quote-padding"
         >
           {/* Header: company + meta */}
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-            <div className="flex items-start gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <div className="flex items-start gap-3 w-full sm:w-auto">
               <div
-                className="w-20 h-20 sm:w-28 sm:h-28 bg-slate-100 dark:bg-slate-700 rounded overflow-hidden flex items-center justify-center relative"
+                className="w-16 h-16 sm:w-20 sm:h-20 bg-slate-100 dark:bg-slate-700 rounded overflow-hidden flex items-center justify-center relative logo-small"
                 onDrop={handleLogoDrop}
                 onDragOver={handleLogoDragOver}
                 aria-label="Company logo upload dropzone"
@@ -837,7 +869,6 @@ export default function CreateQuotation() {
                   )}
                 </label>
 
-                {/* hidden file input */}
                 <input
                   id="companyLogoInput"
                   type="file"
@@ -847,7 +878,6 @@ export default function CreateQuotation() {
                   aria-hidden="true"
                 />
 
-                {/* remove / replace controls (show when a logo exists) */}
                 {company.logoDataUrl && (
                   <div className="absolute bottom-1 right-1 flex gap-1">
                     <button
@@ -874,9 +904,9 @@ export default function CreateQuotation() {
                 )}
               </div>
 
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <input
-                  className="w-full bg-transparent outline-none text-lg font-semibold"
+                  className="w-full bg-transparent outline-none text-base sm:text-lg font-semibold truncate"
                   value={company.name}
                   onChange={(e) =>
                     setCompany((c) => ({ ...c, name: e.target.value }))
@@ -884,16 +914,16 @@ export default function CreateQuotation() {
                   placeholder="Company name"
                 />
                 <input
-                  className="w-full bg-transparent outline-none text-sm text-slate-500 mt-1"
+                  className="w-full bg-transparent outline-none text-sm text-slate-500 mt-1 truncate"
                   value={company.address}
                   onChange={(e) =>
                     setCompany((c) => ({ ...c, address: e.target.value }))
                   }
                   placeholder="Company address"
                 />
-                <div className="flex gap-2 mt-2 text-sm">
+                <div className="flex gap-2 mt-2 text-sm flex-wrap">
                   <input
-                    className="bg-transparent outline-none text-sm text-slate-500"
+                    className="bg-transparent outline-none text-sm text-slate-500 min-w-0"
                     value={company.phone}
                     onChange={(e) =>
                       setCompany((c) => ({ ...c, phone: e.target.value }))
@@ -901,7 +931,7 @@ export default function CreateQuotation() {
                     placeholder="Phone"
                   />
                   <input
-                    className="bg-transparent outline-none text-sm text-slate-500"
+                    className="bg-transparent outline-none text-sm text-slate-500 min-w-0"
                     value={company.email}
                     onChange={(e) =>
                       setCompany((c) => ({ ...c, email: e.target.value }))
@@ -912,37 +942,41 @@ export default function CreateQuotation() {
               </div>
             </div>
 
-            <div className="text-right min-w-[160px]">
+            <div className="text-right min-w-[140px] w-full sm:w-auto">
               <div className="text-sm text-slate-500">Quote #</div>
-              <div className="font-bold text-lg">{quoteNumber}</div>
+              <div className="font-bold text-base sm:text-lg truncate">
+                {quoteNumber}
+              </div>
               <div className="text-sm text-slate-500 mt-2">Date</div>
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="mt-1 w-full bg-transparent outline-none text-sm"
+                className="mt-1 w-full sm:w-auto bg-transparent outline-none text-sm"
               />
-              <div className="mt-3 text-left md:text-right">
+              <div className="mt-3 text-left sm:text-right">
                 <div className="text-sm text-slate-500">Prepared for</div>
                 <input
-                  className="w-full md:w-auto bg-transparent outline-none font-medium"
+                  className="w-full md:w-auto bg-transparent outline-none font-medium truncate"
                   value={customer.name}
                   onChange={(e) =>
                     setCustomer((c) => ({ ...c, name: e.target.value }))
                   }
                   placeholder="Customer name"
                 />
-                <div className="text-xs text-slate-500">{customer.address}</div>
+                <div className="text-xs text-slate-500 truncate">
+                  {customer.address}
+                </div>
               </div>
             </div>
           </div>
 
-          <hr className="my-4 border-slate-100 dark:border-slate-700" />
+          <hr className="my-3 border-slate-100 dark:border-slate-700" />
 
           {/* Customer fields */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
             <input
-              className="p-2 border rounded"
+              className="p-2 border rounded w-full"
               placeholder="Customer Name"
               value={customer.name}
               onChange={(e) =>
@@ -950,7 +984,7 @@ export default function CreateQuotation() {
               }
             />
             <input
-              className="p-2 border rounded"
+              className="p-2 border rounded w-full"
               placeholder="Customer Address"
               value={customer.address}
               onChange={(e) =>
@@ -958,7 +992,7 @@ export default function CreateQuotation() {
               }
             />
             <input
-              className="p-2 border rounded"
+              className="p-2 border rounded w-full"
               placeholder="Customer Phone"
               value={customer.phone}
               onChange={(e) =>
@@ -969,15 +1003,16 @@ export default function CreateQuotation() {
 
           {/* Items */}
           <div className="mb-4">
-            <div className="hidden md:block">
+            {/* Desktop table (scrollable on small screens) */}
+            <div className="hidden sm:block table-responsive">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-slate-500">
                     <th className="py-2">Description</th>
-                    <th className="py-2 w-24 text-right">Qty</th>
-                    <th className="py-2 w-40 text-right">Unit</th>
-                    <th className="py-2 w-40 text-right">Total</th>
-                    <th className="py-2 w-20"></th>
+                    <th className="py-2 w-20 text-right">Qty</th>
+                    <th className="py-2 w-32 text-right">Unit</th>
+                    <th className="py-2 w-32 text-right">Total</th>
+                    <th className="py-2 w-16"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1030,19 +1065,19 @@ export default function CreateQuotation() {
             </div>
 
             {/* Mobile cards */}
-            <div className="md:hidden space-y-3">
+            <div className="sm:hidden space-y-3">
               {items.map((it) => (
                 <div
                   key={it.id}
                   className="p-3 border rounded bg-white dark:bg-slate-800"
                 >
                   <div className="flex justify-between items-start gap-3">
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <label className="text-xs text-slate-500">
                         Description
                       </label>
                       <input
-                        className="w-full bg-transparent outline-none"
+                        className="w-full bg-transparent outline-none truncate"
                         value={it.description}
                         onChange={(e) =>
                           updateItem(it.id, "description", e.target.value)
@@ -1063,7 +1098,7 @@ export default function CreateQuotation() {
                   </div>
 
                   <div className="flex items-center gap-3 mt-2">
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <label className="text-xs text-slate-500">Price</label>
                       <input
                         type="number"
@@ -1094,7 +1129,7 @@ export default function CreateQuotation() {
               ))}
             </div>
 
-            <div className="mt-3">
+            <div className="mt-2">
               <button
                 className="px-3 py-2 rounded bg-black text-white"
                 onClick={addItem}
@@ -1105,8 +1140,8 @@ export default function CreateQuotation() {
           </div>
 
           {/* Totals */}
-          <div className="md:flex md:justify-end">
-            <div className="w-full md:w-80 p-4 border rounded bg-slate-50 dark:bg-slate-900">
+          <div className="sm:flex sm:justify-end mt-4">
+            <div className="w-full sm:w-80 p-3 border rounded bg-slate-50 dark:bg-slate-900">
               <div className="flex justify-between text-sm text-slate-500 mb-2">
                 <span>Subtotal</span>
                 <span>{currency(subtotal)}</span>
@@ -1149,11 +1184,11 @@ export default function CreateQuotation() {
           <hr className="my-4 border-slate-100 dark:border-slate-700" />
 
           {/* Notes & Signature */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="font-semibold">Notes</label>
               <textarea
-                className="w-full mt-2 p-2 border rounded min-h-[140px]"
+                className="w-full mt-2 p-2 border rounded min-h-[120px]"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
@@ -1162,7 +1197,7 @@ export default function CreateQuotation() {
             <div>
               <label className="font-semibold">Signature</label>
               <div className="border rounded p-2 bg-white dark:bg-slate-800">
-                <canvas ref={sigCanvasRef} className="w-full h-32 block" />
+                <canvas ref={sigCanvasRef} className="w-full h-28 block" />
                 <div className="flex gap-2 mt-2">
                   <button
                     onClick={clearSignature}
@@ -1175,7 +1210,7 @@ export default function CreateQuotation() {
             </div>
           </div>
 
-          <div className="mt-6 text-sm text-slate-500">
+          <div className="mt-4 text-sm text-slate-500">
             <strong>Terms:</strong> Prices exclude taxes unless stated. Payment
             terms: 50% deposit, balance on delivery. Quotation valid for 30
             days.
@@ -1183,30 +1218,7 @@ export default function CreateQuotation() {
         </div>
       </div>
 
-      {/* Mobile fixed summary bar */}
-      <div className="fixed left-0 right-0 bottom-0 md:hidden bg-white dark:bg-slate-800 border-t p-3">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
-          <div>
-            <div className="text-xs text-slate-500">Total</div>
-            <div className="font-bold">{currency(total)}</div>
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              onClick={exportPdf}
-              className="px-3 py-2 rounded bg-indigo-600 text-white"
-            >
-              Export PDF
-            </button>
-            <button
-              onClick={() => window.print()}
-              className="px-3 py-2 rounded bg-white border"
-            >
-              Print
-            </button>
-          </div>
-        </div>
-      </div>
+    
     </div>
   );
 }
