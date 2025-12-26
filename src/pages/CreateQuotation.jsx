@@ -474,7 +474,7 @@ export default function CreateQuotation() {
     y += Math.max(12, custLines.length * 5) + 6;
 
     // Items table header
-    const tableTop = y;
+  
     const colDescW = contentWidth * 0.55;
     const colQtyW = contentWidth * 0.1;
     const colUnitW = contentWidth * 0.17;

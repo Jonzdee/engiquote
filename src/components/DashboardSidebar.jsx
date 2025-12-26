@@ -54,7 +54,6 @@ export default function DashboardSidebar({ onSignOut }) {
           <div className="font-bold text-lg text-slate-900 dark:text-slate-100">
             EngiQuote
           </div>
-          <div className="text-xs text-slate-500">Quotations & Clients</div>
         </div>
       </div>
 
