@@ -1,4 +1,3 @@
-// src/components/MobileNav.jsx
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -18,25 +17,25 @@ export default function MobileNav() {
     { to: "/createquotation", label: "Create", icon: <FilePlus size={22} /> },
     { to: "/quotationhistory", label: "History", icon: <History size={22} /> },
     { to: "/browsetemplate", label: "Template", icon: <GlobeLock size={22} /> },
-    { to: "/profile", label: "profile", icon: <Users size={22} /> },
+    { to: "/profile", label: "Profile", icon: <Users size={22} /> },
   ];
 
   return (
     <nav
+      role="navigation"
+      aria-label="Mobile navigation"
       className="
-        fixed bottom-4 left-1/2 -translate-x-1/2 
-        md:hidden z-50
+        fixed bottom-0 left-0 right-0 md:hidden z-50
         bg-white dark:bg-gray-900
-        border border-gray-200 dark:border-gray-700
-        shadow-xl rounded-2xl 
-        px-4 py-2 w-[92%] max-w-md 
-        backdrop-blur-lg
+        border-t border-gray-200 dark:border-gray-700
+        shadow-md
+        px-2
       "
       style={{
         paddingBottom: "env(safe-area-inset-bottom, 12px)",
       }}
     >
-      <div className="flex justify-between items-center">
+      <div className="max-w-4xl mx-auto flex justify-between items-center">
         {items.map((item) => (
           <NavLink
             key={item.to}
