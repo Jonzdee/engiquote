@@ -3,25 +3,25 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 
+import { auth } from "../firebase";
+import {
+  signInWithEmailAndPassword,
+  sendEmailVerification,
+} from "firebase/auth";
+
 /**
- * Login.jsx
- * - Uses react-toastify for notifications
- * - Accessible labels and aria attributes
- * - Guest login with confirmation and toast
+ * Login.jsx (soft enforcement)
+ * - Allows sign-in even if email is unverified
+ * - If unverified, sets a state so UI / dashboard can show a banner
+ * - Provides a Resend verification action
  */
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  // Validation error states
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
-
-  // Loading spinner state
   const [loading, setLoading] = useState(false);
-
-  // Show/hide password toggle
   const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
@@ -32,104 +32,123 @@ function Login() {
     emailRef.current?.focus();
   }, []);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
+  const validateInputs = () => {
     let valid = true;
     setEmailError("");
     setPasswordError("");
 
     if (!email) {
       setEmailError("Email is required");
-      toast.error("Please enter your email");
       valid = false;
     } else if (!/\S+@\S+\.\S+/.test(email)) {
       setEmailError("Enter a valid email address");
-      toast.error("Please enter a valid email");
       valid = false;
     }
 
     if (!password) {
       setPasswordError("Password is required");
-      toast.error("Please enter your password");
       valid = false;
     } else if (password.length < 6) {
       setPasswordError("Password must be at least 6 characters");
-      toast.error("Password must be at least 6 characters");
       valid = false;
     }
 
-    if (!valid) {
-      if (emailError) emailRef.current?.focus();
-      else if (passwordError) passwordRef.current?.focus();
+    return valid;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateInputs()) {
+      toast.error("Please fix the errors and try again");
       return;
     }
 
     setLoading(true);
+    try {
+      const credential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const user = credential.user;
 
-    // Simulate async login with toast.promise
-    const loginPromise = new Promise((resolve) => setTimeout(resolve, 1200));
-    toast
-      .promise(loginPromise, {
-        pending: "Signing in…",
-        success: "Login successful 👌",
-        error: "Login failed. Please try again.",
-      })
-      .then(() => {
-        localStorage.setItem("role", "user");
-        localStorage.setItem("user_email", email);
-        navigate("/dashboard");
-      })
-      .finally(() => setLoading(false));
+      // soft enforcement: allow sign-in but if unverified show a toast/nudge
+      if (user && !user.emailVerified) {
+        toast.info(
+          "Email not verified — check your inbox (and spam). A banner will show in your dashboard."
+        );
+      } else {
+        toast.success("Login successful 👌");
+      }
+
+      // persist minimal info and navigate
+      localStorage.setItem("role", "user");
+      localStorage.setItem("user_email", email);
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Sign in error:", error);
+      switch (error.code) {
+        case "auth/user-not-found":
+          toast.error("No account found for that email.");
+          setEmailError("No account found for that email.");
+          emailRef.current?.focus();
+          break;
+        case "auth/wrong-password":
+          toast.error("Incorrect password. Please try again.");
+          setPasswordError("Incorrect password");
+          passwordRef.current?.focus();
+          break;
+        case "auth/too-many-requests":
+          toast.error("Too many failed attempts. Try again later.");
+          break;
+        case "auth/invalid-email":
+          toast.error("Invalid email address.");
+          setEmailError("Enter a valid email address");
+          emailRef.current?.focus();
+          break;
+        default:
+          toast.error(error.message || "Login failed. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // inside your component
-  const handleGuestLogin = () => {
-    // create a mutable id so handlers can dismiss the same toast
-    let toastId = null;
+  const resendVerification = async () => {
+    if (!email) {
+      toast.error("Enter your email to resend verification.");
+      return;
+    }
 
-    const ConfirmContent = () => (
-      <div className="max-w-xs">
-        <div className="text-sm mb-3">
-          Continue as Guest? Some features may be restricted.
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => {
-              // close the confirmation toast
-              toast.dismiss(toastId);
-              // perform guest login
-              localStorage.setItem("role", "guest");
-              localStorage.setItem("guest_since", new Date().toISOString());
-              toast.success("Continuing as guest — limited access");
-              navigate("/dashboard");
-            }}
-            className="px-3 py-1 rounded bg-black text-white text-sm"
-          >
-            Continue
-          </button>
-
-          <button
-            onClick={() => {
-              toast.dismiss(toastId);
-              toast.info("Guest login cancelled");
-            }}
-            className="px-3 py-1 rounded border text-sm"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    );
-
-    // show the confirmation toast (keep it open until user acts)
-    toastId = toast(<ConfirmContent />, {
-      autoClose: false,
-      closeOnClick: false,
-      closeButton: false,
-      draggable: false,
-    });
+    setLoading(true);
+    try {
+      // If the currentUser is the same email, use it; otherwise sign in to get a user object
+      if (auth.currentUser && auth.currentUser.email === email) {
+        await sendEmailVerification(auth.currentUser);
+      } else {
+        // sign in to obtain user, but keep signed-in (soft enforcement)
+        const cred = await signInWithEmailAndPassword(auth, email, password);
+        await sendEmailVerification(cred.user);
+      }
+      toast.success(
+        "Verification email resent. Check your inbox and spam folder."
+      );
+    } catch (err) {
+      console.error("Resend verification failed:", err);
+      if (err.code === "auth/wrong-password") {
+        toast.error(
+          "Wrong password — cannot resend verification. Try signing in first."
+        );
+      } else if (err.code === "auth/too-many-requests") {
+        toast.error("Too many requests. Try again later.");
+      } else {
+        toast.error(err.message || "Could not resend verification.");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
+
   return (
     <div className="h-screen flex justify-center items-center bg-black dark:bg-slate-900 px-4">
       <form
@@ -165,6 +184,7 @@ function Login() {
             onChange={(e) => setEmail(e.target.value)}
             aria-describedby={emailError ? "email-error" : undefined}
             aria-invalid={!!emailError}
+            disabled={loading}
             className={`border rounded-lg p-2 focus:outline-none focus:ring-2 ${
               emailError
                 ? "border-rose-500 focus:ring-rose-200"
@@ -194,13 +214,13 @@ function Login() {
           <div className="relative">
             <input
               id="password"
-              ref={passwordRef}
               type={showPassword ? "text" : "password"}
               placeholder="Your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               aria-describedby={passwordError ? "password-error" : undefined}
               aria-invalid={!!passwordError}
+              disabled={loading}
               className={`border w-full rounded-lg p-2 pr-10 focus:outline-none focus:ring-2 ${
                 passwordError
                   ? "border-rose-500 focus:ring-rose-200"
@@ -261,12 +281,30 @@ function Login() {
           )}
         </button>
 
-        {/* CONTINUE AS GUEST */}
+        {/* Resend verification quick link */}
+        <div className="mt-3 text-center">
+          <button
+            type="button"
+            onClick={resendVerification}
+            disabled={loading}
+            className="text-sm underline"
+          >
+            Resend verification email
+          </button>
+        </div>
+
+        {/* CONTINUE AS GUEST (kept from previous) */}
         <button
           type="button"
-          onClick={handleGuestLogin}
+          onClick={() => {
+            localStorage.setItem("role", "guest");
+            localStorage.setItem("guest_since", new Date().toISOString());
+            toast.success("Continuing as guest — limited access");
+            navigate("/dashboard");
+          }}
           className="w-full border border-black text-black py-2 rounded-lg mt-3 hover:bg-black hover:text-white transition"
           aria-label="Continue as guest"
+          disabled={loading}
         >
           Continue as Guest
         </button>

@@ -1,9 +1,9 @@
-// src/components/Dashboard.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import QuickActions from "@/components/QuickActions";
 import StatsCards from "@/components/StatsCards";
 import RecentQuotations from "@/components/RecentQuotations";
+import VerificationBanner from "@/components/VerificationBanner";
 
 export default function Dashboard({ children, quotations = [] }) {
   const [open, setOpen] = useState(false);
@@ -32,17 +32,13 @@ export default function Dashboard({ children, quotations = [] }) {
               Manage and generate engineering quotations
             </p>
           </div>
-
-          <button
-            onClick={() => navigate("/create-quotation")}
-            className="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800 transition"
-          >
-            + New Quotation
-          </button>
         </header>
 
         {/* CONTENT */}
         <main className="p-6 overflow-auto space-y-6 pb-32">
+          {/* VERIFICATION BANNER (soft enforcement) */}
+          <VerificationBanner />
+
           {/* GUEST UPGRADE BANNER */}
           {isGuest && (
             <div className="bg-yellow-100 border border-yellow-300 text-yellow-800 p-4 rounded-lg flex justify-between items-center">

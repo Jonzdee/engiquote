@@ -1,7 +1,17 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { FiUpload } from "react-icons/fi";
+
+import {
+  createUserWithEmailAndPassword,
+  updateProfile,
+  sendEmailVerification,
+} from "firebase/auth";
+
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+
+import { auth, db } from "../firebase";
 
 function Signup() {
   const navigate = useNavigate();
@@ -23,24 +33,45 @@ function Signup() {
   const [logoPreview, setLogoPreview] = useState(null);
 
   const [loading, setLoading] = useState(false);
-
   const [errors, setErrors] = useState({});
+
+  // cleanup preview URL
+  useEffect(() => {
+    return () => {
+      if (logoPreview) URL.revokeObjectURL(logoPreview);
+    };
+  }, [logoPreview]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleLogoUpload = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setErrors((p) => ({ ...p, logo: "Please upload an image file." }));
+      return;
+    }
+
+    const MAX_BYTES = 5 * 1024 * 1024;
+    if (file.size > MAX_BYTES) {
+      setErrors((p) => ({ ...p, logo: "Image is too large (max 5MB)." }));
+      return;
+    }
+
+    setErrors((p) => ({ ...p, logo: undefined }));
     setLogo(file);
+
+    if (logoPreview) URL.revokeObjectURL(logoPreview);
     setLogoPreview(URL.createObjectURL(file));
   };
 
-  const validateStep = () => {
+  const validateStep = (s) => {
     let temp = {};
 
-    if (step === 1) {
+    if (s === 1) {
       if (!formData.name) temp.name = "Full name is required";
       if (!formData.email) temp.email = "Email is required";
       else if (!/\S+@\S+\.\S+/.test(formData.email))
@@ -50,7 +81,7 @@ function Signup() {
         temp.password = "Minimum 6 characters required";
     }
 
-    if (step === 2) {
+    if (s === 2) {
       if (!formData.businessName)
         temp.businessName = "Business name is required";
       if (!formData.businessEmail)
@@ -63,37 +94,124 @@ function Signup() {
         temp.businessAddress = "Business address is required";
     }
 
-    if (step === 3) {
-      if (!logo) temp.logo = "Business logo is required";
+    if (s === 3) {
+      // logo optional in soft enforcement flow
       if (!formData.tips)
         temp.tips = "Please describe the type of quotes you generate";
     }
+
+    setErrors((p) => ({ ...p, ...temp }));
+    return Object.keys(temp).length === 0;
+  };
+
+  const validateAll = () => {
+    const temp = {};
+
+    if (!formData.name) temp.name = "Full name is required";
+    if (!formData.email) temp.email = "Email is required";
+    else if (!/\S+@\S+\.\S+/.test(formData.email))
+      temp.email = "Enter a valid email";
+    if (!formData.password) temp.password = "Password is required";
+    else if (formData.password.length < 6)
+      temp.password = "Minimum 6 characters required";
+
+    if (!formData.businessName) temp.businessName = "Business name is required";
+    if (!formData.businessEmail)
+      temp.businessEmail = "Business email is required";
+    else if (!/\S+@\S+\.\S+/.test(formData.businessEmail))
+      temp.businessEmail = "Enter a valid email";
+    if (!formData.businessPhone)
+      temp.businessPhone = "Business phone is required";
+    if (!formData.businessAddress)
+      temp.businessAddress = "Business address is required";
+
+    if (!formData.tips)
+      temp.tips = "Please describe the type of quotes you generate";
 
     setErrors(temp);
     return Object.keys(temp).length === 0;
   };
 
   const nextStep = () => {
-    if (validateStep()) setStep(step + 1);
+    if (validateStep(step)) setStep((s) => s + 1);
   };
 
-  const prevStep = () => setStep(step - 1);
+  const prevStep = () => setStep((s) => s - 1);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateStep()) return;
+
+    if (!validateAll()) return;
 
     setLoading(true);
 
-    setTimeout(() => {
-      toast.success("Account created successfully!");
+    try {
+      // 1) Create user with Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        formData.email,
+        formData.password
+      );
+      const user = userCredential.user;
+
+      // 2) Update user profile (displayName)
+      try {
+        await updateProfile(user, { displayName: formData.name });
+      } catch (err) {
+        console.warn("updateProfile failed:", err);
+      }
+
+      // 3) Save user + business data to Firestore (no logo upload)
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        name: formData.name,
+        email: formData.email,
+        businessName: formData.businessName,
+        businessEmail: formData.businessEmail,
+        businessPhone: formData.businessPhone,
+        businessAddress: formData.businessAddress,
+        tips: formData.tips,
+        logoMeta: logo
+          ? { name: logo.name, size: logo.size, type: logo.type }
+          : null,
+        createdAt: serverTimestamp(),
+      });
+
+      // 4) Send verification email — soft enforcement: DO NOT sign out the user
+      try {
+        await sendEmailVerification(user);
+        toast.info(
+          "Verification email sent — check your inbox and spam. You can continue using the app."
+        );
+      } catch (sendErr) {
+        console.warn("sendEmailVerification failed:", sendErr);
+        toast.info(
+          "Account created. Please verify your email (we couldn't send the verification automatically)."
+        );
+      }
+
+      // 5) Navigate to dashboard (user remains signed-in)
       navigate("/dashboard");
-    }, 1500);
+    } catch (error) {
+      console.error(error);
+      if (error.code === "auth/email-already-in-use") {
+        toast.error("Email already exists");
+      } else if (error.code === "auth/weak-password") {
+        toast.error("Password is too weak");
+      } else {
+        toast.error(error.message || "An error occurred");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen flex justify-center items-center bg-black p-4">
-      <form className="w-full max-w-2xl bg-white shadow-xl rounded-lg p-6 space-y-6">
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-2xl bg-white shadow-xl rounded-lg p-6 space-y-6"
+      >
         <h1 className="text-3xl font-bold text-center">Create Account</h1>
 
         <div className="flex justify-center mb-4 gap-2">
@@ -237,7 +355,7 @@ function Signup() {
         {step === 3 && (
           <div className="space-y-2">
             <div>
-              <label className="font-medium">Business Logo</label>
+              <label className="font-medium">Business Logo (optional)</label>
               <input
                 id="logoInput"
                 type="file"
@@ -265,6 +383,9 @@ function Signup() {
               {errors.logo && (
                 <p className="text-red-500 text-sm">{errors.logo}</p>
               )}
+              <p className="text-xs text-gray-500 mt-1">
+                Note: logo is stored locally for now (no upload).
+              </p>
             </div>
 
             <div>
@@ -309,8 +430,7 @@ function Signup() {
 
           {step === 3 && (
             <button
-              type="button"
-              onClick={handleSubmit}
+              type="submit"
               disabled={loading}
               className="ml-auto px-4 py-2 bg-black text-white rounded-lg disabled:bg-gray-600"
             >
